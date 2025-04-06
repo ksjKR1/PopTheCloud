@@ -1,131 +1,238 @@
-<!-- 전체 코드에 주석 추가 -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사과 숫자 합 10 만들기 (영역 드래그)</title>
+    <title>드래그 사과 숫자 합 10 만들기 - 구름 셀 (Safari 호환)</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f5f5f5;
             margin: 0;
-            padding: 20px;
-        }
-        .game-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            background: #ffffff;
+            font-family: Arial, sans-serif;
+            user-select: none;
         }
-        .game-info {
-            display: flex;
-            justify-content: space-between;
-            width: 720px;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        h1 {
+            margin-top: 20px;
         }
-        .score, .time {
-            font-size: 24px;
-            font-weight: bold;
+        .info {
+            margin: 10px;
+            font-size: 20px;
         }
-        .game-board {
+        #game-board {
             display: grid;
-            grid-template-columns: repeat(18, 40px);
-            grid-template-rows: repeat(10, 40px);
-            gap: 2px;
-            background-color: #e0e0e0;
+            grid-template-columns: repeat(18, 50px);
+            grid-template-rows: repeat(10, 50px);
+            gap: 5px;
+            margin-top: 20px;
+            background: #a3d8f4;
             padding: 10px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             position: relative;
+            overflow-x: auto;
+            max-width: 100%;
+            width: 1024px;
         }
         .cell {
-            width: 40px;
-            height: 40px;
-            background-color: #f8f8f8;
-            border-radius: 5px;
+            width: 50px;
+            height: 50px;
+            background: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            user-select: none;
-            position: relative;
-        }
-        .apple {
-            width: 35px;
-            height: 35px;
-            background-color: #ff6b6b;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
             font-weight: bold;
             font-size: 18px;
-            transition: transform 0.1s, background-color 0.1s;
+            user-select: none;
             position: relative;
+            clip-path: url(#cloudClip); /* SVG clip-path 사용 */
         }
-        .apple.selected {
-            background-color: #ff9f43;
-            transform: scale(0.9);
-            box-shadow: 0 0 10px rgba(255, 159, 67, 0.7);
-        }
-        .sum-display {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
+        .selected {
+            background: #ff9f43 !important;
             color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 24px;
-            font-weight: bold;
+        }
+        #selection-box {
+            position: absolute;
+            border: 2px dashed #ff9f43;
+            background-color: rgba(255, 159, 67, 0.2);
+            pointer-events: none;
             display: none;
         }
-        .game-over, .start-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            color: white;
-        }
-        .game-over h1, .start-screen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        .game-over .final-score, .start-screen p {
-            font-size: 24px;
-            margin-bottom: 30px;
-        }
-        .restart-btn, .start-btn {
-            padding: 15px 30px;
-            font-size: 20px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .restart-btn:hover, .start-btn:hover {
-            background-color: #388e3c;
+        svg {
+            position: absolute;
+            width: 0;
+            height: 0;
         }
     </style>
 </head>
 <body>
-<!-- 생략된 게임 화면 및 스크립트 전체 포함 -->
-<!-- 스크립트 생략 -->
+    <h1>사과 숫자 합 10 만들기</h1>
+    <div class="info">점수: <span id="score">0</span></div>
+    <div id="game-board"></div>
+
+    <!-- SVG clip-path 정의 (Safari 호환) -->
+    <svg>
+        <defs>
+            <clipPath id="cloudClip" clipPathUnits="objectBoundingBox">
+                <path d="M 0.3 0.66 L 0.7 0.66 C 0.84 0.66 0.84 0.36 0.68 0.38 C 0.7 0.18 0.34 0.2 0.36 0.36 C 0.14 0.32 0.14 0.66 0.3 0.66 Z" />
+            </clipPath>
+        </defs>
+    </svg>
+
+    <script>
+        const board = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score');
+        let score = 0;
+        let dragStart = null;
+        let dragEnd = null;
+
+        const selectionBox = document.createElement('div');
+        selectionBox.id = 'selection-box';
+        board.appendChild(selectionBox);
+
+        function createBoard() {
+            const numbers = [];
+            for (let i = 1; i <= 9; i++) {
+                let count = 25 - i;
+                for (let j = 0; j < count; j++) {
+                    numbers.push(i);
+                }
+            }
+            for (let i = numbers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }
+
+            let idx = 0;
+            for (let row = 0; row < 10; row++) {
+                for (let col = 0; col < 18; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    const value = numbers[idx++];
+                    cell.textContent = value;
+                    cell.dataset.value = value;
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        board.addEventListener('mousedown', (e) => {
+            const boardRect = board.getBoundingClientRect();
+            dragStart = { x: e.clientX, y: e.clientY };
+            selectionBox.style.display = 'block';
+            selectionBox.style.left = `${e.clientX - boardRect.left}px`;
+            selectionBox.style.top = `${e.clientY - boardRect.top}px`;
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+        });
+
+        board.addEventListener('mousemove', (e) => {
+            if (!dragStart) return;
+            const boardRect = board.getBoundingClientRect();
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+
+            const left = Math.min(dragStart.x, currentX) - boardRect.left;
+            const top = Math.min(dragStart.y, currentY) - boardRect.top;
+            const width = Math.abs(dragStart.x - currentX);
+            const height = Math.abs(dragStart.y - currentY);
+
+            selectionBox.style.left = `${left}px`;
+            selectionBox.style.top = `${top}px`;
+            selectionBox.style.width = `${width}px`;
+            selectionBox.style.height = `${height}px`;
+        });
+
+        board.addEventListener('mouseup', (e) => {
+            if (!dragStart) return;
+            dragEnd = { x: e.clientX, y: e.clientY };
+            selectionBox.style.display = 'none';
+            handleSelection();
+            dragStart = null;
+            dragEnd = null;
+        });
+
+        board.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            const boardRect = board.getBoundingClientRect();
+            dragStart = { x: touch.clientX, y: touch.clientY };
+            selectionBox.style.display = 'block';
+            selectionBox.style.left = `${touch.clientX - boardRect.left}px`;
+            selectionBox.style.top = `${touch.clientY - boardRect.top}px`;
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+        });
+
+        board.addEventListener('touchmove', (e) => {
+            if (!dragStart) return;
+            const touch = e.touches[0];
+            const boardRect = board.getBoundingClientRect();
+            const currentX = touch.clientX;
+            const currentY = touch.clientY;
+
+            const left = Math.min(dragStart.x, currentX) - boardRect.left;
+            const top = Math.min(dragStart.y, currentY) - boardRect.top;
+            const width = Math.abs(dragStart.x - currentX);
+            const height = Math.abs(dragStart.y - currentY);
+
+            selectionBox.style.left = `${left}px`;
+            selectionBox.style.top = `${top}px`;
+            selectionBox.style.width = `${width}px`;
+            selectionBox.style.height = `${height}px`;
+        });
+
+        board.addEventListener('touchend', (e) => {
+            if (!dragStart) return;
+            const touch = e.changedTouches[0];
+            dragEnd = { x: touch.clientX, y: touch.clientY };
+            selectionBox.style.display = 'none';
+            handleSelection();
+            dragStart = null;
+            dragEnd = null;
+        });
+
+
+        function handleSelection() {
+            const cells = document.querySelectorAll('.cell');
+            let selected = [];
+
+            const left = Math.min(dragStart.x, dragEnd.x);
+            const right = Math.max(dragStart.x, dragEnd.x);
+            const top = Math.min(dragStart.y, dragEnd.y);
+            const bottom = Math.max(dragStart.y, dragEnd.y);
+
+            cells.forEach(cell => {
+                const rect = cell.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                if (centerX >= left && centerX <= right && centerY >= top && centerY <= bottom) {
+                    if (parseInt(cell.dataset.value) > 0) {
+                        cell.classList.add('selected');
+                        selected.push(cell);
+                    }
+                }
+            });
+
+            const sum = selected.reduce((acc, cell) => acc + parseInt(cell.dataset.value), 0);
+            if (sum === 10) {
+                score += selected.length;
+                scoreDisplay.textContent = score;
+                selected.forEach(cell => {
+                    cell.textContent = '';
+                    cell.style.background = '#bbb';
+                    cell.dataset.value = 0;
+                    cell.classList.remove('selected');
+                });
+            } else {
+                selected.forEach(cell => cell.classList.remove('selected'));
+            }
+        }
+
+        createBoard();
+    </script>
 </body>
 </html>
